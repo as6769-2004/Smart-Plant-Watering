@@ -13,10 +13,10 @@ This project is an **automated plant watering system** using **Arduino**, a **so
 - **9V Battery** (Power Source)
 - **Jumper Wires**
 
-<div align="center">
-  <img src="screenshots/components.png" alt="Components Used" style="max-width: 400; height: auto;">
-  <br><b>Figure 1: Components Used</b>
-</div>
+<p align="center">
+  <img src="screenshots/components.png" alt="Components Used" height="300">  
+</p>
+<p align="center"><b>Figure 1: Components Used</b></p>
 
 ## Circuit Connections
 
@@ -32,26 +32,26 @@ This project is an **automated plant watering system** using **Arduino**, a **so
 
 ## Circuit Diagram
 
-<div align="center">
-  <img src="screenshots/connection.png" alt="Circuit Diagram" style="max-width: 400; height: auto;">
-  <br><b>Figure 2: Circuit Diagram</b>
-</div>
+<p align="center">
+  <img src="screenshots/connection.png" alt="Circuit Diagram" height="300">  
+</p>
+<p align="center"><b>Figure 2: Circuit Diagram</b></p>
 
 ## Web Interface Screenshots
 
-<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center;">
-  <img src="screenshots/manual_web_page_monitor.png" alt="Manual Web Page Monitor" style="width: 400; height: auto; margin: 10px;">
-  <img src="screenshots/auto_web_page_monitor.png" alt="Auto Web Page Monitor" style="max-width: 400; height: auto; margin: 10px;">
-</div>
+<p align="center">
+  <img src="screenshots/manual_web_page_monitor.png" height="300">&nbsp;
+  <img src="screenshots/auto_web_page_monitor.png" height="300">
+</p>
 <p align="center"><b>Figure 3 & 4: Web Interface Screens</b></p>
 
 ## Mobile App Screenshots
 
-<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center;">
-  <img src="screenshots/home_page_app.jpg" alt="Home Page App" style="max-width: 300; height: auto; margin: 10px;">
-  <img src="screenshots/manual_page_app.jpg" alt="Manual Mode App" style="max-width: 300; height: auto; margin: 10px;">
-  <img src="screenshots/auto_page_app.jpg" alt="Auto Mode App" style="max-width: 300; height: auto; margin: 10px;">
-</div>
+<p align="center">
+  <img src="screenshots/home_page_app.jpg" height="400">&nbsp;
+  <img src="screenshots/manual_page_app.jpg" height="400">&nbsp;
+  <img src="screenshots/auto_page_app.jpg" height="400">
+</p>
 <p align="center"><b>Figure 5, 6 & 7: Mobile App Screens</b></p>
 
 ## How It Works
