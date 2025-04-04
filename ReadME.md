@@ -1,9 +1,11 @@
 # Soil Moisture & Pump Control System
 
 ## Overview
+
 This project is an **automated plant watering system** using **Arduino**, a **soil moisture sensor**, a **relay module**, and a **water pump**. The system monitors the soil moisture level and automatically turns the pump **ON** or **OFF** based on the soil's moisture condition.
 
 ## Components Used
+
 - **Arduino** (Uno/Nano)
 - **Soil Moisture Sensor** (Analog Output)
 - **Relay Module** (Single Channel 5V)
@@ -11,18 +13,49 @@ This project is an **automated plant watering system** using **Arduino**, a **so
 - **9V Battery** (Power Source)
 - **Jumper Wires**
 
+<div align="center">
+  <img src="screenshots/components.png" alt="Components Used" style="max-width: 100%; height: auto;">
+  <br><b>Figure 1: Components Used</b>
+</div>
+
 ## Circuit Connections
-| Component            | Arduino Pin  | Notes |
-|---------------------|-------------|--------------------------------|
-| **Soil Moisture Sensor (Analog Output)** | A0 | Reads soil moisture level (0-1023) |
-| **Relay Module IN Pin** | Digital 7 | Controls pump (LOW = ON, HIGH = OFF) |
-| **Relay Module VCC** | 5V | Power for relay module |
-| **Relay Module GND** | GND | Common ground |
-| **Pump (Connect to Relay NO & COM)** | - | Powered through relay |
-| **Pump Power (9V Battery +)** | Relay Common (COM) | Provides power to the pump |
-| **Pump GND (9V Battery -)** | GND | Common ground |
+
+| Component                                | Arduino Pin        | Notes                                |
+| ---------------------------------------- | ------------------ | ------------------------------------ |
+| **Soil Moisture Sensor (Analog Output)** | A0                 | Reads soil moisture level (0-1023)   |
+| **Relay Module IN Pin**                  | Digital 7          | Controls pump (LOW = ON, HIGH = OFF) |
+| **Relay Module VCC**                     | 5V                 | Power for relay module               |
+| **Relay Module GND**                     | GND                | Common ground                        |
+| **Pump (Connect to Relay NO & COM)**     | -                  | Powered through relay                |
+| **Pump Power (9V Battery +)**            | Relay Common (COM) | Provides power to the pump           |
+| **Pump GND (9V Battery -)**              | GND                | Common ground                        |
+
+## Circuit Diagram
+
+<div align="center">
+  <img src="screenshots/connection.png" alt="Circuit Diagram" style="max-width: 100%; height: auto;">
+  <br><b>Figure 2: Circuit Diagram</b>
+</div>
+
+## Web Interface Screenshots
+
+<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center;">
+  <img src="screenshots/manual_web_page_monitor.png" alt="Manual Web Page Monitor" style="max-width: 45%; height: auto; margin: 10px;">
+  <img src="screenshots/auto_web_page_monitor.png" alt="Auto Web Page Monitor" style="max-width: 45%; height: auto; margin: 10px;">
+</div>
+<p align="center"><b>Figure 3 & 4: Web Interface Screens</b></p>
+
+## Mobile App Screenshots
+
+<div align="center" style="display: flex; flex-wrap: wrap; justify-content: center;">
+  <img src="screenshots/home_page_app.jpg" alt="Home Page App" style="max-width: 30%; height: auto; margin: 10px;">
+  <img src="screenshots/manual_page_app.jpg" alt="Manual Mode App" style="max-width: 30%; height: auto; margin: 10px;">
+  <img src="screenshots/auto_page_app.jpg" alt="Auto Mode App" style="max-width: 30%; height: auto; margin: 10px;">
+</div>
+<p align="center"><b>Figure 5, 6 & 7: Mobile App Screens</b></p>
 
 ## How It Works
+
 1. The **soil moisture sensor** continuously measures the soil moisture level.
 2. If the moisture level **drops below the dry threshold**, the **relay activates the pump**, watering the plant.
 3. Once the soil reaches the **wet threshold**, the **pump turns off** automatically.
@@ -31,29 +64,35 @@ This project is an **automated plant watering system** using **Arduino**, a **so
    - **Manual Mode:** User can manually turn the pump ON/OFF.
 
 ## Installation & Usage
+
 ### 1️⃣ Upload Code to Arduino
+
 1. Install **Arduino IDE** and necessary libraries.
 2. Connect **Arduino** to your PC via USB.
 3. Upload the Arduino sketch (provided in `code.ino`).
 
 ### 2️⃣ Connect the Circuit
+
 Follow the **connection table** above to wire all components correctly.
 
 ### 3️⃣ Power the System
+
 - Use a **9V battery** or **5V adapter** to power the Arduino.
 - Ensure correct relay wiring to prevent pump damage.
 
 ## Features
+
 ✅ **Automated Soil Moisture Detection**  
 ✅ **Auto Pump Control via Relay**  
 ✅ **Manual Mode for Custom Control**  
-✅ **Low Power Consumption**  
+✅ **Low Power Consumption**
 
 ## Future Enhancements
+
 🔹 Add **WiFi Control** via ESP8266/ESP32  
 🔹 Implement an **OLED Display** for real-time monitoring  
-🔹 Integrate with **IoT & Mobile App**  
+🔹 Integrate with **IoT & Mobile App**
 
 ## License
-This project is open-source. Feel free to use and modify it! 🚀
 
+This project is open-source. Feel free to use and modify it! 🚀
