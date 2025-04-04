@@ -102,11 +102,11 @@ Follow the **connection table** above to wire all components correctly.
 ℹ️ First of all, set the IP of your hotspot (shown in the app’s top-right corner). Once successfully connected, the control buttons will be activated.
 
 🔧 The app can be modified using the Flutter source code provided in the repository.
-
+[Rebuild](soil_monitor_app/README.md)
 
 ## Video Demo
 
-🎥 [Watch](https://example.com/your-video-link)
+🎥 [Watch](Comming_Soon)
 
 ## License
 
