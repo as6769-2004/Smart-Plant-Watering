@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Soil Moisture & Pump Control</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Soil Moisture & Pump Control</h1>
+      <p>Control Mode: <span id="control-mode">Loading...</span></p>
+      <p>Current Moisture: <span class="moisture-level" id="moisture">--</span>%</p>
+      <p class="pump-status">Pump Status: <span id="pump-status">--</span></p>
+
+      <div class="mode-controls">
+        <button onclick="setAutomaticMode()">Automatic Mode</button>
+        <button onclick="setManualMode()">Manual Mode</button>
+      </div>
+
+      <div id="auto-controls" style="display: none">
+        <h3>Automatic Control</h3>
+        <label for="dryThreshold">Dry Threshold:</label>
+        <input type="number" id="dryThreshold" /><br />
+        <label for="wetThreshold">Wet Threshold:</label>
+        <input type="number" id="wetThreshold" /><br />
+        <button onclick="saveThresholds()">Save Thresholds</button>
+      </div>
+
+      <div id="manual-controls" style="display: none">
+        <h3>Manual Control</h3>
+        <button onclick="startPump()">Start Pump</button>
+        <button onclick="stopPump()">Stop Pump</button>
+      </div>
+    </div>
+
+    <script>
+      const espIpAddress = "http://192.168.104.51";
+      const localServerAddress = "";
+      const apiUrl = localServerAddress || espIpAddress;
+
+      async function fetchData(url) {
+        try {
+          const response = await fetch(apiUrl + url);
+          if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+          return await response.text();
+        } catch (error) {
+          console.error("Fetch error:", error);
+        }
+      }
+
+      async function fetchJson(url) {
+        try {
+          const response = await fetch(apiUrl + url);
+          if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+          return await response.json();
+        } catch (error) {
+          console.error("Fetch JSON error:", error);
+        }
+      }
+
+      async function updateMoisture() {
+        const data = await fetchJson("/moisture");
+        if (data?.moisture !== undefined) {
+          document.getElementById("moisture").innerText = parseFloat(data.moisture).toFixed(2);
+        }
+      }
+
+      async function updatePumpStatus() {
+        const status = await fetchData("/pump/status");
+        if (status) {
+          const pumpStatus = document.getElementById("pump-status");
+          pumpStatus.innerText = status;
+          pumpStatus.className = status === "ON" ? "pump-on" : "pump-off";
+        }
+      }
+
+      async function setAutomaticMode() {
+        await fetchData("/mode/auto");
+        document.getElementById("control-mode").innerText = "Automatic";
+        document.getElementById("auto-controls").style.display = "block";
+        document.getElementById("manual-controls").style.display = "none";
+      }
+
+      async function setManualMode() {
+        await fetchData("/mode/manual");
+        document.getElementById("control-mode").innerText = "Manual";
+        document.getElementById("auto-controls").style.display = "none";
+        document.getElementById("manual-controls").style.display = "block";
+      }
+
+      async function startPump() {
+        await fetchData("/pump/start");
+        updatePumpStatus();
+      }
+
+      async function stopPump() {
+        await fetchData("/pump/stop");
+        updatePumpStatus();
+      }
+
+      async function saveThresholds() {
+        const dry = document.getElementById("dryThreshold").value;
+        const wet = document.getElementById("wetThreshold").value;
+        await fetchData(`/thresholds/save?dry=${dry}&wet=${wet}`);
+        alert("Thresholds saved!");
+      }
+
+      async function loadInitialState() {
+        const mode = await fetchData("/mode/status");
+        const thresholds = await fetchJson("/thresholds/get");
+
+        if (mode === "0") {
+          document.getElementById("control-mode").innerText = "Automatic";
+          document.getElementById("auto-controls").style.display = "block";
+          document.getElementById("manual-controls").style.display = "none";
+        } else if (mode === "1") {
+          document.getElementById("control-mode").innerText = "Manual";
+          document.getElementById("auto-controls").style.display = "none";
+          document.getElementById("manual-controls").style.display = "block";
+        }
+
+        if (thresholds) {
+          document.getElementById("dryThreshold").value = thresholds.dry;
+          document.getElementById("wetThreshold").value = thresholds.wet;
+        }
+      }
+
+      setInterval(updateMoisture, 500);
+      setInterval(updatePumpStatus, 500);
+
+      loadInitialState();
+    </script>
+  </body>
+</html>

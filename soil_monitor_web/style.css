@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  color: #e0e0e0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.container {
+  max-width: 420px;
+  width: 90%;
+  background: rgba(30, 30, 30, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+h1 {
+  color: #ffffff;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.moisture-level {
+  font-size: 28px;
+  font-weight: 600;
+  color: #4fc3f7;
+}
+
+.pump-status {
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.pump-on {
+  color: #00e676;
+}
+
+.pump-off {
+  color: #ff5252;
+}
+
+.mode-controls,
+.auto-controls,
+.manual-controls {
+  margin-top: 25px;
+}
+
+button {
+  padding: 12px 24px;
+  font-size: 15px;
+  margin: 6px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #43cea2, #185a9d);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+button:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #32b68e, #0d3f72);
+}
+
+input[type="number"] {
+  padding: 10px;
+  margin: 8px 5px;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  border: 1px solid #666;
+  border-radius: 6px;
+  box-sizing: border-box;
+  width: 90px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+input[type="number"]:focus {
+  border-color: #4fc3f7;
+}
+
+label {
+  font-weight: 500;
+  display: inline-block;
+  margin-top: 10px;
+  color: #b0bec5;
+}
