@@ -12,11 +12,10 @@ class ManualPage extends StatefulWidget {
 }
 
 class _ManualPageState extends State<ManualPage> {
-  bool isPumpOn = false;
   double moistureLevel = 0.0;
+  bool isPumpOn = false; // Added for displaying pump status
   late String apiUrl;
   Timer? moistureTimer;
-  Timer? pumpStatusTimer;
 
   @override
   void initState() {
@@ -29,7 +28,7 @@ class _ManualPageState extends State<ManualPage> {
     try {
       final response = await http
           .get(Uri.parse("$apiUrl/moisture"))
-          .timeout(const Duration(milliseconds: 200)); // Reduced timeout
+          .timeout(const Duration(milliseconds: 200));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -42,35 +41,12 @@ class _ManualPageState extends State<ManualPage> {
     } catch (_) {}
   }
 
-  Future<void> _fetchPumpStatus() async {
-    try {
-      final response = await http
-          .get(Uri.parse("$apiUrl/pump/status"))
-          .timeout(const Duration(seconds: 2));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (mounted) {
-          setState(
-            () => isPumpOn = data['status'].toString().toUpperCase() == "ON",
-          );
-        }
-      }
-    } catch (_) {}
-  }
-
   void _startLiveUpdates() {
     _fetchMoisture();
-    _fetchPumpStatus();
 
     moistureTimer?.cancel();
     moistureTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
       _fetchMoisture();
-    });
-
-    pumpStatusTimer?.cancel();
-    pumpStatusTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _fetchPumpStatus();
     });
   }
 
@@ -80,8 +56,10 @@ class _ManualPageState extends State<ManualPage> {
     http
         .get(Uri.parse("$apiUrl$endpoint"))
         .then((response) {
-          if (response.statusCode == 200) {
-            setState(() => isPumpOn = turnOn);
+          if (mounted && response.statusCode == 200) {
+            setState(() {
+              isPumpOn = turnOn; // Update status manually based on button press
+            });
           }
         })
         .catchError((_) {});
@@ -90,7 +68,6 @@ class _ManualPageState extends State<ManualPage> {
   @override
   void dispose() {
     moistureTimer?.cancel();
-    pumpStatusTimer?.cancel();
     super.dispose();
   }
 
@@ -115,14 +92,12 @@ class _ManualPageState extends State<ManualPage> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: AnimatedSwitcher(
-                duration: const Duration(
-                  milliseconds: 200,
-                ), // Reduced animation duration
+                duration: const Duration(milliseconds: 200),
                 transitionBuilder: (Widget child, Animation<double> animation) {
                   return FadeTransition(opacity: animation, child: child);
                 },
                 child: Column(
-                  key: ValueKey(moistureLevel), // Key the Column now
+                  key: ValueKey(moistureLevel),
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

@@ -52,7 +52,7 @@ class _AutomaticPageState extends State<AutomaticPage> {
     });
 
     moistureTimer?.cancel();
-    moistureTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    moistureTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
       _fetchMoisture();
     });
   }
