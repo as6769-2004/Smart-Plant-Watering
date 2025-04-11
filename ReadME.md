@@ -106,7 +106,7 @@ Follow the **connection table** above to wire all components correctly.
 
 ## Video Demo
 
-🎥 [Watch](Comming_Soon)
+🎥 [Watch](/screenshots/soil_monitoring.mp4)
 
 ## License
 
