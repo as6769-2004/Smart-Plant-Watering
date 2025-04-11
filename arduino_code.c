@@ -1,11 +1,15 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
+#include <ESP8266HTTPClient.h>
 
 const char* ssid = "VIRUS";
 const char* password = "00000000";
 
 ESP8266WebServer server(80);
+
+IPAddress gatewayIP;
+String statusEndpoint;
 
 const int soilMoisturePin = A0;
 const int relayPin = D3;
@@ -29,55 +33,109 @@ void controlPump(bool turnOn) {
   Serial.println(turnOn ? "Pump ON" : "Pump OFF");
 }
 
+void postStatusUpdate() {
+  if (WiFi.status() == WL_CONNECTED) {
+    WiFiClient client;
+    HTTPClient http;
+
+    http.begin(client, statusEndpoint);
+    http.addHeader("Content-Type", "application/json");
+
+    String payload = "{";
+    payload += "\"pumpState\":\"" + String(pumpState ? "ON" : "OFF") + "\",";
+    payload += "\"moisture\":" + String(moisture_percentage, 2) + ",";
+    payload += "\"mode\":\"" + String(controlMode == 0 ? "auto" : "manual") + "\",";
+    payload += "\"dryThreshold\":" + String(autoDryThreshold) + ",";
+    payload += "\"wetThreshold\":" + String(autoWetThreshold);
+    payload += "}";
+
+    int httpResponseCode = http.POST(payload);
+    Serial.print("Status POST response: ");
+    Serial.println(httpResponseCode);
+    http.end();
+  }
+}
+
 void handleMoisture() {
   int moistureValue = analogRead(soilMoisturePin);
   moisture_percentage = 100 - ((moistureValue / 1023.0) * 100);
-
   String json = "{\"moisture\": " + String(moisture_percentage, 2) + "}";
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", json);
 }
 
-void handlePump(bool start) {
-  if (controlMode == 1) {
-    controlPump(start);
-    server.send(200, "text/plain", start ? "Pump started (Manual)" : "Pump stopped (Manual)");
-  } else {
-    server.send(200, "text/plain", "Cannot change pump state. Currently in Automatic Mode.");
-  }
-}
-
 void handlePumpStatus() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "text/plain", pumpState ? "ON" : "OFF");
+  postStatusUpdate();
 }
 
-void handleControlMode(int mode) {
-  controlMode = mode;
-  EEPROM.write(controlModeAddress, mode);
+void handleModeStatus() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "text/plain", String(controlMode));
+  postStatusUpdate();
+}
+
+void handleThresholdGet() {
+  String json = "{\"dry\":" + String(autoDryThreshold) + ",\"wet\":" + String(autoWetThreshold) + "}";
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", json);
+  postStatusUpdate();
+}
+
+void handleModeAuto() {
+  controlMode = 0;
+  EEPROM.write(controlModeAddress, 0);
   EEPROM.commit();
-  Serial.println(mode == 0 ? "Control Mode set to Automatic" : "Control Mode set to Manual");
-  server.send(200, "text/plain", String(mode));
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "text/plain", "Automatic");
+  postStatusUpdate();
+}
+
+void handleModeManual() {
+  controlMode = 1;
+  EEPROM.write(controlModeAddress, 1);
+  EEPROM.commit();
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "text/plain", "Manual");
+  postStatusUpdate();
+}
+
+void handlePumpStart() {
+  controlPump(true);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "text/plain", "Pump started");
+  postStatusUpdate();
+}
+
+void handlePumpStop() {
+  controlPump(false);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "text/plain", "Pump stopped");
+  postStatusUpdate();
 }
 
 void handleSaveThresholds() {
-  if (server.hasArg("dry")) autoDryThreshold = server.arg("dry").toInt();
-  if (server.hasArg("wet")) autoWetThreshold = server.arg("wet").toInt();
-  EEPROM.put(dryThresholdAddress, autoDryThreshold);
-  EEPROM.put(wetThresholdAddress, autoWetThreshold);
-  EEPROM.commit();
-  server.send(200, "text/plain", "Thresholds saved");
-}
-
-void handleGetThresholds() {
-  String json = "{\"dry\": " + String(autoDryThreshold) + ", \"wet\": " + String(autoWetThreshold) + "}";
-  server.send(200, "application/json", json);
+  if (server.hasArg("dry") && server.hasArg("wet")) {
+    autoDryThreshold = server.arg("dry").toInt();
+    autoWetThreshold = server.arg("wet").toInt();
+    EEPROM.put(dryThresholdAddress, autoDryThreshold);
+    EEPROM.put(wetThresholdAddress, autoWetThreshold);
+    EEPROM.commit();
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/plain", "Thresholds saved");
+    postStatusUpdate();
+  } else {
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(400, "text/plain", "Missing parameters");
+  }
 }
 
 void setup() {
   Serial.begin(9600);
   pinMode(soilMoisturePin, INPUT);
   pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, HIGH);
+  digitalWrite(relayPin, HIGH); // off
 
   EEPROM.begin(512);
   EEPROM.get(controlModeAddress, controlMode);
@@ -94,15 +152,20 @@ void setup() {
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  server.on("/moisture", HTTP_GET, handleMoisture);
-  server.on("/pump/start", HTTP_GET, []() { handlePump(true); });
-  server.on("/pump/stop", HTTP_GET, []() { handlePump(false); });
-  server.on("/pump/status", HTTP_GET, handlePumpStatus);
-  server.on("/mode/auto", HTTP_GET, []() { handleControlMode(0); });
-  server.on("/mode/manual", HTTP_GET, []() { handleControlMode(1); });
-  server.on("/mode/status", HTTP_GET, []() { server.send(200, "text/plain", String(controlMode)); });
-  server.on("/thresholds/save", HTTP_GET, handleSaveThresholds);
-  server.on("/thresholds/get", HTTP_GET, handleGetThresholds);
+  gatewayIP = WiFi.gatewayIP();
+  statusEndpoint = "http://" + gatewayIP.toString() + "/status-update";
+  Serial.print("Status update endpoint: ");
+  Serial.println(statusEndpoint);
+
+  server.on("/moisture", handleMoisture);
+  server.on("/pump/status", handlePumpStatus);
+  server.on("/mode/status", handleModeStatus);
+  server.on("/thresholds/get", handleThresholdGet);
+  server.on("/mode/auto", handleModeAuto);
+  server.on("/mode/manual", handleModeManual);
+  server.on("/pump/start", handlePumpStart);
+  server.on("/pump/stop", handlePumpStop);
+  server.on("/thresholds/save", handleSaveThresholds);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -117,9 +180,15 @@ void loop() {
     Serial.printf("Moisture: %.2f%%\n", moisture_percentage);
 
     if (controlMode == 0) {
-      if (moisture_percentage < autoDryThreshold && !pumpState) controlPump(true);
-      else if (moisture_percentage > autoWetThreshold && pumpState) controlPump(false);
+      if (moisture_percentage < autoDryThreshold && !pumpState) {
+        controlPump(true);
+        postStatusUpdate();
+      } else if (moisture_percentage > autoWetThreshold && pumpState) {
+        controlPump(false);
+        postStatusUpdate();
+      }
     }
+
     lastReadTime = millis();
   }
 }
