@@ -16,7 +16,7 @@ Additionally, a **Flutter-based mobile application** was developed to provide re
 - **Jumper Wires**
 
 <p align="center">
-  <img src="screenshots/components.png" alt="Components Used" height="400">  
+  <img src="screenshots/components.png" alt="Components Used" height="300">  
 </p>
 <p align="center"><b>Figure 1: Components Used</b></p>
 
@@ -35,7 +35,7 @@ Additionally, a **Flutter-based mobile application** was developed to provide re
 ## Circuit Diagram
 
 <p align="center">
-  <img src="screenshots/connection.png" alt="Circuit Diagram" height="400">  
+  <img src="screenshots/connection.png" alt="Circuit Diagram" height="300" >  
 </p>
 <p align="center"><b>Figure 2: Circuit Diagram</b></p>
 
@@ -99,6 +99,15 @@ Follow the **connection table** above to wire all components correctly.
 
 📱 [Download the App](/soil_monitor_app/Soil%20Monitoring.apk)
 
+Download the raw file to use the apk , first install on your phone to use it .
+## Usage Instructions
+
+1.  Connect your phone to the same Wi-Fi network as the Arduino.
+2.  Open the app and enter the IP address of the Arduino.
+3.  Press the "Connect" button.
+4.  Once connected, you can view the soil moisture level and control the pump.
+
+
 ℹ️ First of all, set the IP of your hotspot (shown in the app’s top-right corner). Once successfully connected, the control buttons will be activated.
 
 🔧 The app can be modified using the Flutter source code provided in the repository.
@@ -107,6 +116,8 @@ Follow the **connection table** above to wire all components correctly.
 ## Video Demo
 
 🎥 [Watch](/screenshots/soil_monitoring.mp4)
+
+Download the raw file to watch it locally.
 
 ## License
 
