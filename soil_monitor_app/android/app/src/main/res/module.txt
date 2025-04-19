@@ -1,0 +1,568 @@
+<?php
+echo "";
+$localhostIP = $_SERVER['SERVER_ADDR'] ?? gethostbyname(gethostname());
+
+function isListView()
+{
+    return isset($_GET['view']) && $_GET['view'] === 'list';
+}
+
+function isSortDescending()
+{
+    return isset($_GET['sort']) && $_GET['sort'] === 'desc';
+}
+
+// Boolean function to set the sort type (name or type)
+function isSortByType()
+{
+    return isset($_GET['sortby']) && $_GET['sortby'] === 'type';
+}
+$currentDir = realpath($relativePath);
+// Handle file creation
+if (isset($_POST['create_file'])) {
+    $createDir = $_POST['create_in_dir'] ?? $currentDir;
+    $filename = basename($_POST['new_filename']); // sanitize
+    $content = $_POST['file_content'] ?? '';
+    $fullPath = $createDir . DIRECTORY_SEPARATOR . $filename;
+
+    if (!file_exists($fullPath)) {
+        file_put_contents($fullPath, $content);
+        header("Location: ?path=" . urlencode($createDir));
+        exit;
+    } else {
+        echo "<p style='color:red;'>File already exists!</p>";
+    }
+}
+
+// Handle file deletion
+if (isset($_POST['delete_file'])) {
+    $deleteDir = $_POST['delete_in_dir'] ?? $currentDir;
+    $filename = basename($_POST['delete_filename']); // sanitize
+    $fullPath = $deleteDir . DIRECTORY_SEPARATOR . $filename;
+
+    if (file_exists($fullPath) && is_file($fullPath)) {
+        unlink($fullPath);
+        header("Location: ?path=" . urlencode($deleteDir));
+        exit;
+    } else {
+        echo "<p style='color:red;'>File not found or is not a file!</p>";
+    }
+}
+
+
+// Handle file/folder download
+if (isset($_GET['download'])) {
+    $downloadPath = realpath($_GET['download']);
+    if (!$downloadPath || !file_exists($downloadPath)) {
+        die("Invalid file or folder.");
+    }
+
+    if (is_file($downloadPath)) {
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . basename($downloadPath) . '"');
+        header('Content-Length: ' . filesize($downloadPath));
+        readfile($downloadPath);
+        exit;
+    } elseif (is_dir($downloadPath)) {
+        $zipFile = sys_get_temp_dir() . '/' . basename($downloadPath) . '_' . time() . '.zip';
+        $zip = new ZipArchive();
+        if ($zip->open($zipFile, ZipArchive::CREATE) === TRUE) {
+            $folderLen = strlen($downloadPath);
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($downloadPath));
+            foreach ($iterator as $file) {
+                if ($file->isFile()) {
+                    $localName = substr($file->getPathname(), $folderLen + 1);
+                    $zip->addFile($file, $localName);
+                }
+            }
+            $zip->close();
+            header('Content-Type: application/zip');
+            header('Content-Disposition: attachment; filename="' . basename($downloadPath) . '.zip"');
+            header('Content-Length: ' . filesize($zipFile));
+            readfile($zipFile);
+            unlink($zipFile);
+            exit;
+        } else {
+            die("Failed to zip folder.");
+        }
+    }
+}
+
+// Current directory logic
+$defaultDir = 'C:/xampp/htdocs';  // Adjust the base path to the web server's root directory
+$relativePath = $_GET['path'] ?? $defaultDir;
+$currentDir = realpath($relativePath);
+
+if (!$currentDir || !file_exists($currentDir)) {
+    $currentDir = $defaultDir;
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PHP File Explorer with Download</title>
+    <style>
+        /* General Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        h2 {
+            color: #f1f1f1;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .path-info {
+            color: #bbb;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .back-link a {
+            color: #f1f1f1;
+            text-decoration: none;
+            background-color: #333;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 1.1rem;
+        }
+
+        .back-link a:hover {
+            background-color: #444;
+        }
+
+        /* View Toggle Links */
+        a {
+            color: #00bcd4;
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* List and Grid View Styles */
+        .list-view,
+        .grid-view {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            /* Ensures items wrap to the next line */
+        }
+
+        .list-view li,
+        .grid-view li {
+            background-color: #1e1e1e;
+            margin: 8px;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        /* Adjust Grid View for Responsive Design */
+        .grid-view li {
+            /* Ensure tiles have fixed width */
+            max-width: 30%;
+            /* Maximum width for grid tiles */
+            flex: 1 1 30%;
+            /* Flexbox property for responsiveness */
+            margin: 10px;
+            /* Add spacing between tiles */
+        }
+
+        @media (max-width: 1200px) {
+            .grid-view li {
+                max-width: 45%;
+                /* Adjust to 45% on medium screens */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-view li {
+                max-width: 90%;
+                /* Adjust to 90% on small screens */
+            }
+        }
+
+        /* Item Name Style */
+        .item-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .item-name .folder {
+            font-size: 1.8rem;
+            margin-right: 10px;
+        }
+
+        /* Actions Styles */
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .actions a {
+            background-color: #00bcd4;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+
+        .actions a:hover {
+            background-color: #00a1b1;
+        }
+
+        .actions a:active {
+            background-color: #008e9b;
+        }
+
+        .actions a:focus {
+            outline: none;
+        }
+
+        /* File Type Icons */
+        .grid-view li .item-name .folder,
+        .list-view li .item-name .folder {
+            font-size: 1.8rem;
+        }
+
+        /* Tile Customization */
+        .grid-view li .item-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .grid-view li .actions a {
+            background-color: #ff5722;
+            color: white;
+        }
+
+        .grid-view li .actions a:hover {
+            background-color: #e64a19;
+        }
+
+        /* Dark Theme Styling (Merged) */
+        ul.list-view li,
+        ul.grid-view li {
+            background-color: #1e1e1e;
+        }
+
+        ul.list-view li:hover,
+        ul.grid-view li:hover {
+            background-color: #333;
+        }
+
+        h2,
+        .path-info {
+            color: #f1f1f1;
+        }
+
+        .back-link a {
+            color: #f1f1f1;
+        }
+
+        a {
+            color: #00bcd4;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .grid-view li,
+        .list-view li {
+            border-radius: 8px;
+        }
+
+        /* Basic styling for the sort and view menus */
+        p {
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        /* Container for the sort and view menu */
+        .sort-view-container {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .sort-view-container p {
+            margin-bottom: 10px;
+        }
+
+        /* View switch (List/Grid) link */
+        a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            color: #24d53f;
+        }
+
+        /* Dropdown menu styling */
+        select {
+            padding: 6px 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        select:hover {
+            border-color: #007bff;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        /* Option styling for the dropdown */
+        option {
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        /* Container for sorting dropdown */
+        .sort-container {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        /* Flexbox container to align elements */
+        .sort-view-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Align the sorting dropdown and view links */
+        .sort-view-container .sort-container,
+        .sort-view-container .view-container {
+            display: flex;
+            align-items: center;
+        }
+
+        /* Adding space between sort and view containers */
+        .sort-view-container .view-container {
+            margin-left: 20px;
+        }
+
+        /* Additional styling for view option links */
+        .sort-view-container .view-container a {
+            margin-right: 15px;
+        }
+
+        .create-file-form,
+        .delete-file-form {
+            margin: 30px auto;
+            padding: 20px;
+            max-width: 500px;
+            background: #fdfdfd;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .create-file-form h2,
+        .delete-file-form h2 {
+            margin-top: 0;
+        }
+
+        .create-file-form input,
+        .delete-file-form input,
+        .create-file-form textarea {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .create-file-form button {
+            padding: 10px;
+            background-color: #36f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .delete-file-form button {
+            padding: 10px;
+            background-color: rgb(255, 0, 0);
+            color: rgb(0, 0, 0);
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .create-file-form button:hover {
+            background-color: rgb(4, 161, 2);
+        }
+
+        .delete-file-form button:hover {
+            background-color: rgb(87, 4, 4);
+            color: white;
+        }
+
+
+        .h10 {
+            color: #000000;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Localhost IP: <?php echo $localhostIP; ?></h2>
+    <div class="path-info">Current Path: <?php echo htmlspecialchars($currentDir); ?></div>
+
+    <?php
+    $parent = dirname($currentDir);
+    if ($parent !== $currentDir) {
+        echo "<p class='back-link'><a href='?path=" . urlencode($parent) . "'>&larr; Go Up</a></p>";
+    }
+
+    // View options (list or grid)
+    echo "<p><a href='?path=" . urlencode($currentDir) . "&view=" . (isListView() ? "grid" : "list") . "&sort=" . (isSortDescending() ? "asc" : "desc") . "&sortby=" . (isSortByType() ? "name" : "type") . "'>Switch to " . (isListView() ? "Grid" : "List") . " View</a></p>";
+
+    // Dropdown for Sort Options
+    echo "<p>Sort by: 
+        <form method='get' style='display:inline;'>
+            <input type='hidden' name='path' value='" . urlencode($currentDir) . "' />
+            <select name='sortby' onchange='this.form.submit()'>
+                <option value='name'" . (isSortByType() ? '' : ' selected') . ">Name</option>
+                <option value='type'" . (isSortByType() ? ' selected' : '') . ">Type</option>
+                <option value='size'" . (isset($_GET['sortby']) && $_GET['sortby'] === 'size' ? ' selected' : '') . ">Size</option>
+            </select>
+            <select name='sort' onchange='this.form.submit()'>
+                <option value='asc'" . (isSortDescending() ? '' : ' selected') . ">Ascending</option>
+                <option value='desc'" . (isSortDescending() ? ' selected' : '') . ">Descending</option>
+            </select>
+        </form>
+    </p>";
+    ?>
+
+    <ul class="<?php echo isListView() ? 'list-view' : 'grid-view'; ?>">
+        <?php
+        // Sorting logic: alphabetical or reverse
+        $files = [];
+        if (is_dir($currentDir) && $handle = opendir($currentDir)) {
+            while (false !== ($entry = readdir($handle))) {
+                if ($entry != "." && $entry != "..") {
+                    $fullPath = $currentDir . DIRECTORY_SEPARATOR . $entry;
+                    $resolved = realpath($fullPath);
+                    if ($resolved) {
+                        $files[] = ['name' => $entry, 'path' => $resolved, 'type' => is_dir($resolved) ? 'folder' : 'file', 'size' => filesize($resolved)];
+                    }
+                }
+            }
+            closedir($handle);
+        }
+
+        // Sorting logic based on sortby and sort parameters
+        if (isSortByType()) {
+            usort($files, function ($a, $b) {
+                return $a['type'] === $b['type'] ? strcmp($a['name'], $b['name']) : strcmp($a['type'], $b['type']);
+            });
+        } elseif ($_GET['sortby'] === 'size') {
+            usort($files, function ($a, $b) {
+                return isSortDescending() ? $b['size'] - $a['size'] : $a['size'] - $b['size'];
+            });
+        } else {
+            // Sorting by name
+            usort($files, function ($a, $b) {
+                return isSortDescending() ? strcmp($b['name'], $a['name']) : strcmp($a['name'], $b['name']);
+            });
+        }
+
+        foreach ($files as $file) {
+            $entry = $file['name'];
+            $resolved = $file['path'];
+            $tileClass = 'tile-medium'; // Default tile size
+
+            // Set tile size based on query parameter
+            if (isset($_GET['tile'])) {
+                $tileClass = $_GET['tile'] === 'small' ? 'tile-small' : ($_GET['tile'] === 'large' ? 'tile-large' : 'tile-medium');
+            }
+
+            echo "<li class='$tileClass'>";
+            echo "<div class='item-name'>";
+            if ($file['type'] === 'folder') {
+                echo "<span class='folder'>📁</span> <a href='?path=" . urlencode($resolved) . "'>$entry</a>";
+            } else {
+                $webPath = str_replace("\\", "/", substr($resolved, strlen($_SERVER['DOCUMENT_ROOT'])));
+                $fileUrl = "http://$localhostIP$webPath";
+                echo "📝 <a href='$fileUrl' target='_blank'>$entry</a>";
+            }
+            echo "</div>";
+
+            echo "<div class='actions'>";
+            echo "<a href='?download=" . urlencode($resolved) . "'>Dwnld</a>";
+            echo "</div>";
+
+            echo "</li>";
+        }
+        ?>
+    </ul>
+    <div class="form-container create-file-form">
+        <h10>Create New File</h10>
+        <form method="post">
+            <input type="hidden" name="create_in_dir" value="<?php echo htmlspecialchars($currentDir); ?>">
+            <input type="text" name="new_filename" placeholder="Enter file name" required>
+            <textarea name="file_content" placeholder="Enter file content (optional)"></textarea>
+            <button type="submit" name="create_file">Create File</button>
+        </form>
+    </div>
+
+    <div class="form-container delete-file-form">
+        <h10>Delete File</h10>
+        <form method="post">
+            <input type="hidden" name="delete_in_dir" value="<?php echo htmlspecialchars($currentDir); ?>">
+            <input type="text" name="delete_filename" placeholder="Enter file name to delete" required>
+            <button type="submit" name="delete_file">Delete File</button>
+        </form>
+    </div>
+
+</body>
+
+</html>
