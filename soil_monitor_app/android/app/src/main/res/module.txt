@@ -1,7 +1,7 @@
 <?php
-echo "";
 $localhostIP = $_SERVER['SERVER_ADDR'] ?? gethostbyname(gethostname());
 
+// Define functions
 function isListView()
 {
     return isset($_GET['view']) && $_GET['view'] === 'list';
@@ -12,16 +12,24 @@ function isSortDescending()
     return isset($_GET['sort']) && $_GET['sort'] === 'desc';
 }
 
-// Boolean function to set the sort type (name or type)
 function isSortByType()
 {
     return isset($_GET['sortby']) && $_GET['sortby'] === 'type';
 }
+
+// Current directory logic
+$defaultDir = 'C:/xampp/htdocs';  // Adjust the base path to the web server's root directory
+$relativePath = $_GET['path'] ?? $defaultDir;
 $currentDir = realpath($relativePath);
+
+if (!$currentDir || !file_exists($currentDir)) {
+    $currentDir = $defaultDir;
+}
+
 // Handle file creation
 if (isset($_POST['create_file'])) {
     $createDir = $_POST['create_in_dir'] ?? $currentDir;
-    $filename = basename($_POST['new_filename']); // sanitize
+    $filename = basename($_POST['new_filename']);
     $content = $_POST['file_content'] ?? '';
     $fullPath = $createDir . DIRECTORY_SEPARATOR . $filename;
 
@@ -35,20 +43,18 @@ if (isset($_POST['create_file'])) {
 }
 
 // Handle file deletion
-if (isset($_POST['delete_file'])) {
-    $deleteDir = $_POST['delete_in_dir'] ?? $currentDir;
-    $filename = basename($_POST['delete_filename']); // sanitize
-    $fullPath = $deleteDir . DIRECTORY_SEPARATOR . $filename;
+// Handle file creation
+if (isset($_POST['create_file'])) {
+    $createDir = $_POST['create_in_dir'] ?? $currentDir;
+    $filename = basename($_POST['new_filename']);
+    $content = $_POST['file_content'] ?? '';
+    $fullPath = $createDir . DIRECTORY_SEPARATOR . $filename;
 
-    if (file_exists($fullPath) && is_file($fullPath)) {
-        unlink($fullPath);
-        header("Location: ?path=" . urlencode($deleteDir));
-        exit;
-    } else {
-        echo "<p style='color:red;'>File not found or is not a file!</p>";
-    }
+    // If the file exists, replace it; otherwise, create a new file
+    file_put_contents($fullPath, $content);
+    header("Location: ?path=" . urlencode($createDir));
+    exit;
 }
-
 
 // Handle file/folder download
 if (isset($_GET['download'])) {
@@ -88,15 +94,6 @@ if (isset($_GET['download'])) {
         }
     }
 }
-
-// Current directory logic
-$defaultDir = 'C:/xampp/htdocs';  // Adjust the base path to the web server's root directory
-$relativePath = $_GET['path'] ?? $defaultDir;
-$currentDir = realpath($relativePath);
-
-if (!$currentDir || !file_exists($currentDir)) {
-    $currentDir = $defaultDir;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -104,6 +101,8 @@ if (!$currentDir || !file_exists($currentDir)) {
 <head>
     <meta charset="UTF-8">
     <title>PHP File Explorer with Download</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+
     <style>
         /* General Styles */
         * {
@@ -215,12 +214,19 @@ if (!$currentDir || !file_exists($currentDir)) {
             align-items: center;
             justify-content: flex-start;
             flex-wrap: wrap;
+            word-wrap: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
         }
 
         .item-name .folder {
             font-size: 1.8rem;
             margin-right: 10px;
+            word-wrap: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
         }
+
 
         /* Actions Styles */
         .actions {
@@ -442,7 +448,6 @@ if (!$currentDir || !file_exists($currentDir)) {
             color: white;
         }
 
-
         .h10 {
             color: #000000;
             font-size: 1.8rem;
@@ -452,7 +457,6 @@ if (!$currentDir || !file_exists($currentDir)) {
 </head>
 
 <body>
-
     <h2>Localhost IP: <?php echo $localhostIP; ?></h2>
     <div class="path-info">Current Path: <?php echo htmlspecialchars($currentDir); ?></div>
 
@@ -462,10 +466,8 @@ if (!$currentDir || !file_exists($currentDir)) {
         echo "<p class='back-link'><a href='?path=" . urlencode($parent) . "'>&larr; Go Up</a></p>";
     }
 
-    // View options (list or grid)
     echo "<p><a href='?path=" . urlencode($currentDir) . "&view=" . (isListView() ? "grid" : "list") . "&sort=" . (isSortDescending() ? "asc" : "desc") . "&sortby=" . (isSortByType() ? "name" : "type") . "'>Switch to " . (isListView() ? "Grid" : "List") . " View</a></p>";
 
-    // Dropdown for Sort Options
     echo "<p>Sort by: 
         <form method='get' style='display:inline;'>
             <input type='hidden' name='path' value='" . urlencode($currentDir) . "' />
@@ -484,7 +486,6 @@ if (!$currentDir || !file_exists($currentDir)) {
 
     <ul class="<?php echo isListView() ? 'list-view' : 'grid-view'; ?>">
         <?php
-        // Sorting logic: alphabetical or reverse
         $files = [];
         if (is_dir($currentDir) && $handle = opendir($currentDir)) {
             while (false !== ($entry = readdir($handle))) {
@@ -492,35 +493,31 @@ if (!$currentDir || !file_exists($currentDir)) {
                     $fullPath = $currentDir . DIRECTORY_SEPARATOR . $entry;
                     $resolved = realpath($fullPath);
                     if ($resolved) {
-                        $files[] = ['name' => $entry, 'path' => $resolved, 'type' => is_dir($resolved) ? 'folder' : 'file', 'size' => filesize($resolved)];
+                        $files[] = [
+                            'name' => $entry,
+                            'path' => $resolved,
+                            'type' => is_dir($resolved) ? 'folder' : 'file',
+                            'size' => filesize($resolved)
+                        ];
                     }
                 }
             }
             closedir($handle);
         }
 
-        // Sorting logic based on sortby and sort parameters
+        // Sorting logic
         if (isSortByType()) {
-            usort($files, function ($a, $b) {
-                return $a['type'] === $b['type'] ? strcmp($a['name'], $b['name']) : strcmp($a['type'], $b['type']);
-            });
-        } elseif ($_GET['sortby'] === 'size') {
-            usort($files, function ($a, $b) {
-                return isSortDescending() ? $b['size'] - $a['size'] : $a['size'] - $b['size'];
-            });
+            usort($files, fn($a, $b) => $a['type'] === $b['type'] ? strcmp($a['name'], $b['name']) : strcmp($a['type'], $b['type']));
+        } elseif (isset($_GET['sortby']) && $_GET['sortby'] === 'size') {
+            usort($files, fn($a, $b) => isSortDescending() ? $b['size'] - $a['size'] : $a['size'] - $b['size']);
         } else {
-            // Sorting by name
-            usort($files, function ($a, $b) {
-                return isSortDescending() ? strcmp($b['name'], $a['name']) : strcmp($a['name'], $b['name']);
-            });
+            usort($files, fn($a, $b) => isSortDescending() ? strcmp($b['name'], $a['name']) : strcmp($a['name'], $b['name']));
         }
 
         foreach ($files as $file) {
             $entry = $file['name'];
             $resolved = $file['path'];
-            $tileClass = 'tile-medium'; // Default tile size
-
-            // Set tile size based on query parameter
+            $tileClass = 'tile-medium';
             if (isset($_GET['tile'])) {
                 $tileClass = $_GET['tile'] === 'small' ? 'tile-small' : ($_GET['tile'] === 'large' ? 'tile-large' : 'tile-medium');
             }
@@ -535,17 +532,14 @@ if (!$currentDir || !file_exists($currentDir)) {
                 echo "📝 <a href='$fileUrl' target='_blank'>$entry</a>";
             }
             echo "</div>";
-
-            echo "<div class='actions'>";
-            echo "<a href='?download=" . urlencode($resolved) . "'>Dwnld</a>";
-            echo "</div>";
-
+            echo "<div class='actions'><a href='?download=" . urlencode($resolved) . "'>Dwnld</a></div>";
             echo "</li>";
         }
         ?>
     </ul>
+
     <div class="form-container create-file-form">
-        <h10>Create New File</h10>
+        <h3>Create New File</h3>
         <form method="post">
             <input type="hidden" name="create_in_dir" value="<?php echo htmlspecialchars($currentDir); ?>">
             <input type="text" name="new_filename" placeholder="Enter file name" required>
@@ -555,14 +549,13 @@ if (!$currentDir || !file_exists($currentDir)) {
     </div>
 
     <div class="form-container delete-file-form">
-        <h10>Delete File</h10>
+        <h3>Delete File</h3>
         <form method="post">
             <input type="hidden" name="delete_in_dir" value="<?php echo htmlspecialchars($currentDir); ?>">
             <input type="text" name="delete_filename" placeholder="Enter file name to delete" required>
             <button type="submit" name="delete_file">Delete File</button>
         </form>
     </div>
-
 </body>
 
 </html>
